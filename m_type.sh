@@ -25,9 +25,11 @@ loop_function() {
 		text=("${text_hard[@]}")
 	fi
 
+	echo "Input the number of words you want to be displayed in the test (>5 and <30): "
+	read n	
+
 	string=""
 	temp=" "
-	n=25
 
 	for (( i=1; i<=$n; i++ ));
 	do
