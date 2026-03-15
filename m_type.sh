@@ -42,21 +42,15 @@ loop_function() {
 		x=$(($RANDOM%50))
 		text_array+=("${text[$x]}")
 	done
-	for (( i=0; i<$n; i++ ));
-	do
-		if [[ $i -eq $((n-1)) ]]
-		then
-			echo "${text_array[$i]}"
-		else
-			echo -n "${text_array[$i]} "
-		fi
-	done
-	echo ""
+
+	target_string="${text_array[@]}"
 
 	echo -n "Press ENTER to start..."
 	read a
 	if [[ "$a" == "" ]]
 	then
+		echo -n -e "${target_string}\r"
+		position=0
 		input_temp=""
 		count_backspace=0
 		s_input=()	
@@ -67,11 +61,13 @@ loop_function() {
 			then
 				break
 			fi
-			IFS= read -n 1 char_input
+			IFS= read -s -n 1 char_input
 			if [[ "$char_input" == " " ]]
 			then
 				s_input+=(${input_temp})
 				input_temp=""
+				((position++))
+				echo -n " "
 				continue
 			fi
 			if [[ "$char_input" == $'\x7f' ]]
@@ -84,16 +80,20 @@ loop_function() {
 				else
 					input_temp="${input_temp%?}"
 				fi
+				((position--))
+				prev_char="${target_string:$position:1}"
+				echo -e -n "\b${prev_char}\b"
 				((count_backspace++))
-				echo -e -n "\b\b  \b\b\b \b"
 				continue
 			fi
-			input_temp="${input_temp}${char_input}"
 			if [[ "$char_input" == "" ]]
 			then
 				s_input+=(${input_temp})
 				break
 			fi
+			input_temp="${input_temp}${char_input}"
+			echo -n "$char_input"
+			((position++))
 		done
 
 		echo ""
