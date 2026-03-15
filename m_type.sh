@@ -12,84 +12,121 @@ loop_function() {
 	text=("")
 
 	echo "WELCOME TO MONKEY TYPE"
-	echo "Choose level (easy(e)/med(m)/hard(h)) : "
+	echo -n "Choose level (easy(e)/med(m)/hard(h)) : "
 	read level
 
-	if [ $level == 'e' ]
+	if [ "$level" == "e" ]
 	then
 		text=("${text_easy[@]}")
-	elif [ $level == 'm' ]
+	elif [ "$level" == "m" ]
 	then
 		text=("${text_med[@]}")
 	else
 		text=("${text_hard[@]}")
 	fi
 
-	echo "Input the number of words you want to be displayed in the test (>5 and <30): "
-	read n	
+	echo -n "Input the number of words you want to be displayed in the test (>5 and <30): "
+	read n
 
-	string=""
-	temp=" "
+	echo ""
+
+	text_array=()
 
 	for (( i=1; i<=$n; i++ ));
 	do
 		x=$(($RANDOM%50))
-		if [ $i -eq 1 ]
+		text_array+=("${text[$x]}")
+	done
+	for (( i=0; i<$n; i++ ));
+	do
+		if [[ $i == $((n-1)) ]]
 		then
-			string="${string}${text[$x]}"
+			echo "${text_array[$i]}"
 		else
-			string="${string}${temp}${text[$x]}"
+			echo -n "${text_array[$i]} "
+		fi
+	done
+	echo ""
+
+	echo "Press ENTER to start"
+	read a
+	s_input=()
+	input_temp=""
+	
+	SECONDS=0
+	while true;
+	do
+		if [[ ${#s_input[@]} -ge $n ]]
+		then
+			break
+		fi
+		IFS= read -n 1 char_input
+		if [[ "$char_input" == " " ]]
+		then
+			s_input+=(${input_temp})
+			input_temp=""
+			continue
+		fi
+		if [[ "$char_input" == $'\x7f' ]]
+		then
+			echo -e -n "\b\b  \b\b\b \b"
+			input_temp="${input_temp%?}"
+			continue
+		fi
+		input_temp="${input_temp}${char_input}"
+		if [[ "$char_input" == " " ]]
+		then
+			s_input+=(${input_temp})
+			break
 		fi
 	done
 
-	echo "${string}"
-	echo "Print ENTER to start"
-	read a
-
-	SECONDS=0
-
-	read s_input
+	echo ""
 
 	time=$SECONDS
-	len_input=${#s_input}
-	len_text=${#string}
-	len=$len_input
+	words=${#s_input[@]}
 
-	if [ $len_input -ge $len_text ]
-	then
-		len=$len_text
-	fi
+	correct_char=0
+	char_typed=0
 
-	words=0
-
-	for (( i=1; i<$len; i++))
+	for (( i=0; i<$n; i++))
 	do
-		if [[ "${s_input:$i:1}" == " " ]]
+		len_t=${#text_array[$i]}
+		len_i=${#s_input[$i]}
+		s_t="${text_array[$i]}"
+		s_i="${s_input[$i]}"
+		((char_typed+=$len_i))
+		min_len=$len_i
+		if [[ $len_i -ge $len_t ]]
 		then
-			if [[ "${s_input:$i-1:1}" != " " ]]
+			min_len=$len_t
+		fi
+		for (( j=0; j<$min_len; j++ ))
+		do
+			if [[ "${s_i:$j:1}" == "${s_t:$j:1}" ]]
 			then
-				((words++))
+				((correct_char++))
 			fi
-		fi
+		done
 	done
 
-	((words++))
-
-	correct=0
-
-	for (( i=0; i<$len; i++));
-	do
-		if [[ "${s_input:$i:1}" == "${string:$i:1}" ]]
-		then
-			((correct++))
-		fi
-	done
-
-	accuracy=$(echo "scale=2; ($correct*100)/$len" | bc)
-	wpm=$(echo "scale=2; ($words*60)/$time" | bc)
-
-	echo "Accuracy = ${accuracy}%"
-	echo "WPM = $wpm"
+	if [[ $char_typed == 0 ]]
+	then
+		accuracy=0
+	else
+		accuracy=$(echo "scale=2; ($correct_char*100)/$char_typed" | bc)
+	fi
+	echo "Accuracy = ${accuracy}"
+	if [[ $time == 0 ]]
+	then
+		raw_wpm=0
+		net_wpm=0
+	else
+		raw_wpm=$(echo "scale=2; ($char_typed*12)/$time" | bc)
+		net_wpm=$(echo "scale=2; ($correct_char*12)/$time" | bc)
+	fi
+	echo "Raw WPM = $raw_wpm"
+	echo "Net WPM = $net_wpm"
 }
 
 while true; 
