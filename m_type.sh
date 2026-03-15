@@ -12,13 +12,13 @@ loop_function() {
 	text=("")
 
 	echo "WELCOME TO MONKEY TYPE"
-	echo -n "Choose level (easy(e)/med(m)/hard(h)) : "
+	echo -n "Choose level (easy(e)/med(m)/hard(h) --> default level=HARD) : "
 	read level
 
-	if [ "$level" == "e" ]
+	if [[ "$level" == "e" ]]
 	then
 		text=("${text_easy[@]}")
-	elif [ "$level" == "m" ]
+	elif [[ "$level" == "m" ]]
 	then
 		text=("${text_med[@]}")
 	else
@@ -27,6 +27,11 @@ loop_function() {
 
 	echo -n "Input the number of words you want to be displayed in the test (>5 and <30): "
 	read n
+	if [[ $n -lt 5 || $n -gt 30 ]]
+	then
+		echo "WRONG INPUT : Input not within the specified range or is of wrong format"
+		return
+	fi
 
 	echo ""
 
@@ -39,7 +44,7 @@ loop_function() {
 	done
 	for (( i=0; i<$n; i++ ));
 	do
-		if [[ $i == $((n-1)) ]]
+		if [[ $i -eq $((n-1)) ]]
 		then
 			echo "${text_array[$i]}"
 		else
@@ -48,85 +53,100 @@ loop_function() {
 	done
 	echo ""
 
-	echo "Press ENTER to start"
+	echo -n "Press ENTER to start..."
 	read a
-	s_input=()
-	input_temp=""
-	
-	SECONDS=0
-	while true;
-	do
-		if [[ ${#s_input[@]} -ge $n ]]
-		then
-			break
-		fi
-		IFS= read -n 1 char_input
-		if [[ "$char_input" == " " ]]
-		then
-			s_input+=(${input_temp})
-			input_temp=""
-			continue
-		fi
-		if [[ "$char_input" == $'\x7f' ]]
-		then
-			echo -e -n "\b\b  \b\b\b \b"
-			input_temp="${input_temp%?}"
-			continue
-		fi
-		input_temp="${input_temp}${char_input}"
-		if [[ "$char_input" == " " ]]
-		then
-			s_input+=(${input_temp})
-			break
-		fi
-	done
-
-	echo ""
-
-	time=$SECONDS
-	words=${#s_input[@]}
-
-	correct_char=0
-	char_typed=0
-
-	for (( i=0; i<$n; i++))
-	do
-		len_t=${#text_array[$i]}
-		len_i=${#s_input[$i]}
-		s_t="${text_array[$i]}"
-		s_i="${s_input[$i]}"
-		((char_typed+=$len_i))
-		min_len=$len_i
-		if [[ $len_i -ge $len_t ]]
-		then
-			min_len=$len_t
-		fi
-		for (( j=0; j<$min_len; j++ ))
+	if [[ "$a" == "" ]]
+	then
+		input_temp=""
+		count_backspace=0
+		s_input=()	
+		SECONDS=0
+		while true;
 		do
-			if [[ "${s_i:$j:1}" == "${s_t:$j:1}" ]]
+			if [[ ${#s_input[@]} -ge $n ]]
 			then
-				((correct_char++))
+				break
+			fi
+			IFS= read -n 1 char_input
+			if [[ "$char_input" == " " ]]
+			then
+				s_input+=(${input_temp})
+				input_temp=""
+				continue
+			fi
+			if [[ "$char_input" == $'\x7f' ]]
+			then
+				if [[ "${input_temp}" == "" ]]
+				then
+					last_index=$((${#s_input[@]}-1))
+					input_temp="${s_input[$last_index]}"
+					unset 's_input[$last_index]'
+				else
+					input_temp="${input_temp%?}"
+				fi
+				((count_backspace++))
+				echo -e -n "\b\b  \b\b\b \b"
+				continue
+			fi
+			input_temp="${input_temp}${char_input}"
+			if [[ "$char_input" == "" ]]
+			then
+				s_input+=(${input_temp})
+				break
 			fi
 		done
-	done
 
-	if [[ $char_typed == 0 ]]
-	then
-		accuracy=0
-	else
-		accuracy=$(echo "scale=2; ($correct_char*100)/$char_typed" | bc)
+		echo ""
+
+		time=$SECONDS
+		words=${#s_input[@]}
+
+		correct_char=0
+		char_typed=0
+
+		for (( i=0; i<$n; i++))
+		do
+			len_t=${#text_array[$i]}
+			len_i=${#s_input[$i]}
+			s_t="${text_array[$i]}"
+			s_i="${s_input[$i]}"
+			((char_typed+=$len_i))
+			min_len=$len_i
+			if [[ $len_i -ge $len_t ]]
+			then
+				min_len=$len_t
+			fi
+			for (( j=0; j<$min_len; j++ ))
+			do
+				if [[ "${s_i:$j:1}" == "${s_t:$j:1}" ]]
+				then
+					((correct_char++))
+				fi
+			done
+		done
+
+		((char_typed+=$count_backspace))
+
+		if [[ $char_typed -eq 0 ]]
+		then
+			accuracy=0
+		else
+			accuracy=$(echo "scale=2; ($correct_char*100)/$char_typed" | bc)
+		fi
+		echo "Correct = ${correct_char}"
+		echo "Typed_char = ${char_typed}"
+		echo "Accuracy = ${accuracy}"
+		if [[ $time -eq 0 ]]
+		then
+			raw_wpm=0
+			net_wpm=0
+		else
+			raw_wpm=$(echo "scale=2; ($char_typed*12)/$time" | bc)
+			net_wpm=$(echo "scale=2; ($correct_char*12)/$time" | bc)
+		fi
+		echo "Raw WPM = $raw_wpm"
+		echo "Net WPM = $net_wpm"
 	fi
-	echo "Accuracy = ${accuracy}"
-	if [[ $time == 0 ]]
-	then
-		raw_wpm=0
-		net_wpm=0
-	else
-		raw_wpm=$(echo "scale=2; ($char_typed*12)/$time" | bc)
-		net_wpm=$(echo "scale=2; ($correct_char*12)/$time" | bc)
-	fi
-	echo "Raw WPM = $raw_wpm"
-	echo "Net WPM = $net_wpm"
 }
 
 while true; 
@@ -134,7 +154,7 @@ do
 	loop_function
 	echo "Do you want to repeat this test (yes(y)/no(n)) ?"
 	read repeat
-	if [ $repeat == 'n' ]
+	if [[ $repeat == "n" ]]
 	then 
 		break
 	fi
