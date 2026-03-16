@@ -10,8 +10,9 @@ loop_function() {
 	text_hard=("algorithm" "ambiguous" "compile" "bandwidth" "capacitor" "concurrent" "database" "debugging" "dynamic" "efficiency" "encrypt" "equation" "execute" "framework" "frequency" "function" "generate" "hardware" "heuristic" "implement" "increment" "integrate" "interface" "iteration" "latency" "library" "logical" "matrix" "memory" "module" "network" "optimize" "parallel" "parameter" "pointer" "protocol" "recursion" "repository" "resistance" "routing" "scalable" "segment" "semantic" "sequence" "simulate" "syntax" "terminal" "variable" "velocity" "virtual")
 
 	text=("")
-
+	echo ""
 	echo "WELCOME TO MONKEY TYPE"
+	echo ""
 	echo -n "Choose level (easy(e)/med(m)/hard(h) --> default level=HARD) : "
 	read level
 
@@ -25,15 +26,13 @@ loop_function() {
 		text=("${text_hard[@]}")
 	fi
 
-	echo -n "Input the number of words you want to be displayed in the test (>5 and <30): "
+	echo -n "Input the number of words you want to be displayed in the test (>=5 and <=15): "
 	read n
-	if [[ $n -lt 5 || $n -gt 30 ]]
+	if [[ $n -lt 5 || $n -gt 15 ]]
 	then
 		echo "WRONG INPUT : Input not within the specified range or is of wrong format"
 		return
 	fi
-
-	echo ""
 
 	text_array=()
 
@@ -43,10 +42,12 @@ loop_function() {
 		text_array+=("${text[$x]}")
 	done
 
-	target_string="${text_array[@]}"
+	target_string="${text_array[*]}"
+	
+	echo ""
 
 	echo -n "Press ENTER to start..."
-	read a
+	read -s a
 	if [[ "$a" == "" ]]
 	then
 		echo -n -e "\e[90m${target_string}\e[0m\r"
@@ -56,11 +57,11 @@ loop_function() {
 		SECONDS=0
 		
 		f_overwrite() {
-			echo -n -e "\r\e[K" 
+			echo -n -e "\r\e[K"
 			
 			curr_word_pos=${#s_input[@]}
 			
-			for (( i=0; i<$n; i++ )) 
+			for (( i=0; i<$n; i++ ))
 			do
 				text_word="${text_array[$i]}"
 				
@@ -69,7 +70,7 @@ loop_function() {
 					i_word="${s_input[$i]}"
 					for (( j=0; j<${#i_word}; j++ ))
 					do
-						if [[ $j -lt ${#text_word} && "${i_word:$j:1}" == "${text_word:$j:1}" ]] 
+						if [[ $j -lt ${#text_word} && "${i_word:$j:1}" == "${text_word:$j:1}" ]]
 						then
 							echo -n -e "\e[32m${i_word:$j:1}\e[0m"
 						else
@@ -82,7 +83,7 @@ loop_function() {
 				then
 					for (( j=0; j<${#input_temp}; j++ ))
 					do
-						if [[ $j -lt ${#text_word} && "${input_temp:$j:1}" == "${text_word:$j:1}" ]] 
+						if [[ $j -lt ${#text_word} && "${input_temp:$j:1}" == "${text_word:$j:1}" ]]
 						then
 							echo -n -e "\e[32m${input_temp:$j:1}\e[0m"
 						else
@@ -90,19 +91,19 @@ loop_function() {
 						fi
 					done
 					
-					if [[ ${#input_temp} -lt ${#text_word} ]] 
+					if [[ ${#input_temp} -lt ${#text_word} ]]
 					then
 						echo -n -e "\e[90m${text_word:${#input_temp}}\e[0m"
 					fi
 					
-					if [[ $i -lt $((n-1)) ]] 
+					if [[ $i -lt $((n-1)) ]]
 					then
 						echo -n -e "\e[90m \e[0m"
 					fi
 					
 				else
 					echo -n -e "\e[90m${text_word}\e[0m"
-					if [[ $i -lt $((n-1)) ]] 
+					if [[ $i -lt $((n-1)) ]]
 					then
 						echo -n -e "\e[90m \e[0m"
 					fi
@@ -124,9 +125,14 @@ loop_function() {
 			then
 				if [[ "${input_temp}" == "" ]]
 				then
-					last_index=$((${#s_input[@]}-1))
-					input_temp="${s_input[$last_index]}"
-					unset 's_input[$last_index]'
+					if [[ "${#s_input[@]}" == 0 ]]
+					then
+						continue
+					else
+						last_index=$((${#s_input[@]}-1))
+						input_temp="${s_input[$last_index]}"
+						unset 's_input[$last_index]'
+					fi
 				else
 					input_temp="${input_temp%?}"
 				fi
@@ -135,24 +141,31 @@ loop_function() {
 				((count_backspace++))
 				continue
 			fi
-
+			
 			if [[ "$char_input" == " " ]]
-                        then
-                                s_input+=(${input_temp})
-                                input_temp=""
-                                f_overwrite
-                                continue
-                        fi
-
-			if [[ "$char_input" == "" ]];
 			then
 				s_input+=("${input_temp}")
-				f_overwrite 
+				input_temp=""
+				f_overwrite
+				continue
+			fi
+
+			if [[ "$char_input" == "" ]]
+			then
+				s_input+=("${input_temp}")
+				f_overwrite
 				break
 			fi
 
 			input_temp="${input_temp}${char_input}"
 			f_overwrite
+
+			if [[ ${#s_input[@]} == $((n-1)) && "${input_temp}" == "${text_array[$((n-1))]}" ]]
+			then
+				s_input+=("${input_temp}")
+				f_overwrite
+				break
+			fi
 
 		done
 
@@ -184,6 +197,8 @@ loop_function() {
 				fi
 			done
 		done
+		
+		echo ""
 
 		((char_typed+=$count_backspace))
 
@@ -193,9 +208,9 @@ loop_function() {
 		else
 			accuracy=$(echo "scale=2; ($correct_char*100)/$char_typed" | bc)
 		fi
-		echo "Correct = ${correct_char}"
-		echo "Typed_char = ${char_typed}"
-		echo "Accuracy = ${accuracy}"
+		echo "No. of correct characters typed = ${correct_char}"
+		echo "Total no. of characters typed = ${char_typed}"
+		echo "Accuracy = ${accuracy} %"
 		if [[ $time -eq 0 ]]
 		then
 			raw_wpm=0
@@ -206,16 +221,21 @@ loop_function() {
 		fi
 		echo "Raw WPM = $raw_wpm"
 		echo "Net WPM = $net_wpm"
+		echo ""
 	fi
 }
 
-while true; 
+while true;
 do
 	loop_function
-	echo "Do you want to repeat this test (yes(y)/no(n)) ?"
-	read repeat
-	if [[ $repeat == "n" ]]
-	then 
+	echo -n "Press (y) to repeat this test : "
+	read -n 1 repeat
+	if [[ $repeat != "y" ]]
+	then
+		echo ""
+		echo "Exiting..."
 		break
+	else
+		echo ""
 	fi
 done
