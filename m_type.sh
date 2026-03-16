@@ -49,7 +49,7 @@ loop_function() {
 	read a
 	if [[ "$a" == "" ]]
 	then
-		echo -n -e "${target_string}\r"
+		echo -n -e "\e[90m${target_string}\e[0m\r"
 		position=0
 		input_temp=""
 		count_backspace=0
@@ -62,14 +62,7 @@ loop_function() {
 				break
 			fi
 			IFS= read -s -n 1 char_input
-			if [[ "$char_input" == " " ]]
-			then
-				s_input+=(${input_temp})
-				input_temp=""
-				((position++))
-				echo -n " "
-				continue
-			fi
+
 			if [[ "$char_input" == $'\x7f' ]]
 			then
 				if [[ "${input_temp}" == "" ]]
@@ -82,17 +75,41 @@ loop_function() {
 				fi
 				((position--))
 				prev_char="${target_string:$position:1}"
-				echo -e -n "\b${prev_char}\b"
+				echo -e -n "\b\e[90m${prev_char}\e[0m\b"
 				((count_backspace++))
 				continue
 			fi
+
+			exp_char="${target_string:$position:1}"
+
+			if [[ "$char_input" == " " ]]
+                        then
+                                s_input+=(${input_temp})
+                                input_temp=""
+                                if [[ "${exp_char}" == " " ]]
+                                then
+                                        echo -e -n "\e[32m \e[0m"
+                                else
+                                        echo -e -n "\e[41m \e[0m"
+				fi
+                                ((position++))
+                                continue
+                        fi
+
 			if [[ "$char_input" == "" ]]
 			then
 				s_input+=(${input_temp})
 				break
 			fi
+
 			input_temp="${input_temp}${char_input}"
-			echo -n "$char_input"
+			
+			if [[ "$char_input" == "$exp_char" ]]
+			then
+				echo -e -n "\e[32m${char_input}\e[0m"
+			else
+				echo -e -n "\e[31m${char_input}\e[0m"
+			fi
 			((position++))
 		done
 
