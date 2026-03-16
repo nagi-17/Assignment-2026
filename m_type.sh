@@ -50,11 +50,68 @@ loop_function() {
 	if [[ "$a" == "" ]]
 	then
 		echo -n -e "\e[90m${target_string}\e[0m\r"
-		position=0
 		input_temp=""
 		count_backspace=0
 		s_input=()	
 		SECONDS=0
+		
+		f_overwrite() {
+			echo -n -e "\r\e[K" 
+			
+			curr_word_pos=${#s_input[@]}
+			
+			for (( i=0; i<$n; i++ )) 
+			do
+				text_word="${text_array[$i]}"
+				
+				if [[ $i -lt $curr_word_pos ]]
+				then
+					i_word="${s_input[$i]}"
+					for (( j=0; j<${#i_word}; j++ ))
+					do
+						if [[ $j -lt ${#text_word} && "${i_word:$j:1}" == "${text_word:$j:1}" ]] 
+						then
+							echo -n -e "\e[32m${i_word:$j:1}\e[0m"
+						else
+							echo -n -e "\e[4;31m${i_word:$j:1}\e[0m"
+						fi
+					done
+					echo -n -e " "
+					
+				elif [[ $i == $curr_word_pos ]]
+				then
+					for (( j=0; j<${#input_temp}; j++ ))
+					do
+						if [[ $j -lt ${#text_word} && "${input_temp:$j:1}" == "${text_word:$j:1}" ]] 
+						then
+							echo -n -e "\e[32m${input_temp:$j:1}\e[0m"
+						else
+							echo -n -e "\e[4;31m${input_temp:$j:1}\e[0m"
+						fi
+					done
+					
+					if [[ ${#input_temp} -lt ${#text_word} ]] 
+					then
+						echo -n -e "\e[90m${text_word:${#input_temp}}\e[0m"
+					fi
+					
+					if [[ $i -lt $((n-1)) ]] 
+					then
+						echo -n -e "\e[90m \e[0m"
+					fi
+					
+				else
+					echo -n -e "\e[90m${text_word}\e[0m"
+					if [[ $i -lt $((n-1)) ]] 
+					then
+						echo -n -e "\e[90m \e[0m"
+					fi
+				fi
+			done
+		}
+		
+		f_overwrite
+		
 		while true;
 		do
 			if [[ ${#s_input[@]} -ge $n ]]
@@ -73,44 +130,30 @@ loop_function() {
 				else
 					input_temp="${input_temp%?}"
 				fi
-				((position--))
-				prev_char="${target_string:$position:1}"
-				echo -e -n "\b\e[90m${prev_char}\e[0m\b"
+				
+				f_overwrite
 				((count_backspace++))
 				continue
 			fi
-
-			exp_char="${target_string:$position:1}"
 
 			if [[ "$char_input" == " " ]]
                         then
                                 s_input+=(${input_temp})
                                 input_temp=""
-                                if [[ "${exp_char}" == " " ]]
-                                then
-                                        echo -e -n "\e[32m \e[0m"
-                                else
-                                        echo -e -n "\e[41m \e[0m"
-				fi
-                                ((position++))
+                                f_overwrite
                                 continue
                         fi
 
-			if [[ "$char_input" == "" ]]
+			if [[ "$char_input" == "" ]];
 			then
-				s_input+=(${input_temp})
+				s_input+=("${input_temp}")
+				f_overwrite 
 				break
 			fi
 
 			input_temp="${input_temp}${char_input}"
-			
-			if [[ "$char_input" == "$exp_char" ]]
-			then
-				echo -e -n "\e[32m${char_input}\e[0m"
-			else
-				echo -e -n "\e[31m${char_input}\e[0m"
-			fi
-			((position++))
+			f_overwrite
+
 		done
 
 		echo ""
